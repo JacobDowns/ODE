@@ -9,7 +9,7 @@ from RKSolver import *
 # The main drawback of this method is that it assumes a fixed step size, and 
 class PCSolver():
     
-  def __init__(self, Ys, fs, init_t, h, verbose = False):
+  def __init__(self, Ys, fs, init_t, h, verbose = False, RK_tol = 1e-6):
     # Fenics functions for each of the unknowns
     self.Ys = Ys
     # The number of unknowns
@@ -33,10 +33,12 @@ class PCSolver():
     self.first = True
     # Output stuff?
     self.verbose = verbose
+    # Tolerance for the bootstrap RK solver
+    self.RK_tol = RK_tol
 
   # Take 5 steps with an adaptive RK solver to bootstrap the PC method
   def bootstrap(self) :    
-    rk_solver = RKSolve(self.Ys, self.fs, t = self.t, dt = self.h, dt_max = self.h, tol = 1e-6, output = False)
+    rk_solver = RKSolve(self.Ys, self.fs, t = self.t, dt = self.h, dt_max = self.h, tol = self.RK_tol, output = False)
 
     for i in range(5) :      
       # Update the solution functions
