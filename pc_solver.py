@@ -1,5 +1,6 @@
 from dolfin import *
 import numpy as np
+from pc_solver import *
 from RKSolver import *
 
 # A fixed time-step 5th order predictor corrector solver. The predictor step
@@ -8,7 +9,7 @@ from RKSolver import *
 # The main drawback of this method is that it assumes a fixed step size, and 
 class PCSolver():
     
-  def __init__(self, Ys, fs, init_t, h):
+  def __init__(self, Ys, fs, init_t, h, verbose = False):
     # Fenics functions for each of the unknowns
     self.Ys = Ys
     # The number of unknowns
@@ -30,10 +31,12 @@ class PCSolver():
     self.prev_ys = None
     # Flag for first step
     self.first = True
+    # Output stuff?
+    self.verbose = verbose
 
   # Take 5 steps with an adaptive RK solver to bootstrap the PC method
   def bootstrap(self) :    
-    rk_solver = RKSolve(self.Ys, self.fs, t = self.t, dt = self.h, dt_max = self.h, tol = 1e-8, output = False)
+    rk_solver = RKSolve(self.Ys, self.fs, t = self.t, dt = self.h, dt_max = self.h, tol = 1e-6, output = False)
 
     for i in range(5) :      
       # Update the solution functions
@@ -71,7 +74,6 @@ class PCSolver():
   def get_ys(self, Ys) :
     return [y.vector().array() for y in Ys]
 
-  # dt : time step
   # Step solutions foward by dt using the Adams-Bashforth method and then
   # with the implicit Adams-Moulton method and return both solutions    
   def try_step(self):
@@ -99,15 +101,35 @@ class PCSolver():
       ys2.append(y)
       
     return (ys1, ys2)
+  
+  # y1 : A list of solutions
+  # y2 : Another list of solutions 
+  # Return the error between two solutions
+  def error(self, ys1, ys2) :
+    errors = []
+    
+    for i in range(self.num_unknowns):
+      err = MPI.max(mpi_comm_world(), abs(ys1[i] - ys2[i]).max())
+      errors.append(err)
+    
+    return errors
 
   def step(self):
     if self.first : 
       # For the first step, use the RK solver to initialize some stuff for the PC solver    
       self.bootstrap()
       self.first = False
+      
+      if self.verbose :
+        print "Bootstrap Spin Up."
+        print "Current Time: " + str(self.t)
+        print
+        
     else : 
       # Otherwise use the PC solver
       ys1, ys2 = self.try_step()
+      # Get the errors
+      errors = self.error(ys1, ys2)
       # Write the new solution vectors back to their corresponding Fenics functions
       self.write_Ys(ys2)
       # Update the time
@@ -120,6 +142,11 @@ class PCSolver():
       self.pop_f_ns()
       # Store the last solution
       self.prev_ys = ys1
+      
+      if self.verbose :
+        print "Current Time: " + str(self.t)
+        print "Errors: " + str(errors)
+        print
   
   # ys : list of solution vectors
   # Writes each solution vector back to its corresponding Fenics function

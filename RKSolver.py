@@ -98,8 +98,7 @@ class RKSolve :
   # Compute the error given two concatenated solution functions of different
   # order
   def default_error(self, x1, x2) :
-    m = 5.0 if self.MPI_rank else 1.0
-    dif_max = MPI.max(mpi_comm_world(), abs(x1 - x2).max() * m)
+    dif_max = MPI.max(mpi_comm_world(), abs(x1 - x2).max())
     return dif_max
      
   # Step forward in time using a simple adaptive time stepping algorithm
