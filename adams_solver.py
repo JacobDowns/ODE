@@ -155,7 +155,7 @@ class AdamsSolver():
     errors = []
     
     for i in range(self.num_unknowns):
-      err = MPI.max(mpi_comm_world(), (abs(ys2[i] - ys1[i]) / ys1[i]).max())
+      err = MPI.max(mpi_comm_world(), (abs(ys2[i] - ys1[i])).max())
       errors.append(err)
     
     return errors
@@ -181,7 +181,7 @@ class AdamsSolver():
       self.last_dt = self.dt
       
       # Recompute the time step based on the error
-      s = (self.tol / (error + 1e-30))**(1 / 5.)
+      s = 0.84 * (self.tol / (error + 1e-30))**(1/4.)
       self.dt = min(s * self.dt, self.dt_max)
    
       # If the error is greater than the tolerance, then reject this step
