@@ -29,11 +29,11 @@ class AdamsSolver():
     self.first = True
     # Output stuff?
     self.verbose = verbose
-    # Store the last five times
+    # Store the last five solution times
     self.ts = []
     # An object for computing integrals of basis functions for Lagrange 
     # polynomials. This is used to determine the coefficients for the AB 
-    # and AM methods given the last few time steps
+    # and AM methods given the last five solution times
     self.l_int = LagrangeInt()
     # Process rank
     self.MPI_rank = MPI.rank(mpi_comm_world())
@@ -107,7 +107,6 @@ class AdamsSolver():
     
     if len(self.ts) > 5:
       self.pop_ts()
-      
 
   # Step solutions foward by dt using the Adams-Bashforth method and then
   # with the implicit Adams-Moulton method and return both solutions    
@@ -160,6 +159,7 @@ class AdamsSolver():
     
     return errors
 
+  # Step forward in time using a simple adaptive time stepping algorithm
   def step_adapt(self):
     if self.first : 
       # For the first step, use the RK solver to initialize some stuff for the Adams solver    
@@ -187,13 +187,13 @@ class AdamsSolver():
       # If the error is greater than the tolerance, then reject this step
       # and try again
       if error > self.tol :
-        if self.verbose :
+        if self.verbose and self.MPI_rank == 0:
           print "Time step rejected."
           print
           
         self.step_adapt()
       else :
-        if self.verbose :
+        if self.verbose and self.MPI_rank == 0:
           print "Time step accepted."
           print
         
@@ -209,6 +209,26 @@ class AdamsSolver():
         self.pop_f_ns()
         # Store the latest solution
         self.prev_ys = ys1  
+  
+  # dt: time step
+  # Steps forward by a specified dt using multiple steps to remain within the error
+  # tolerance if necessary
+  def step(self, dt) :
+    # Target time we want to reach
+    target = self.t + dt
+    
+    if self.verbose and self.MPI_rank == 0:
+      print "Target: " + str(target)
+    
+    # Take as many steps as necessary to reach the target without exceeding
+    # the tolerance
+    while(abs(self.t - target) > 1e-10) :
+      # Either use the last recommended time step or dt if it's smaller
+      self.dt = min(dt, self.dt)
+      # Step forward in time  
+      self.step_adapt()
+      # Update dt to be the new time to the target
+      dt = target - self.t
   
   # ys : list of solution vectors
   # Writes each solution vector back to its corresponding Fenics function

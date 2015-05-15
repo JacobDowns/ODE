@@ -6,7 +6,7 @@ from dolfin import *
 import pylab as plt
 from adams_solver import *
 
-mesh = RectangleMesh(0.0, 0.0, 1.0, 1.0, 2, 2)
+mesh = RectangleMesh(0.0, 0.0, 1.0, 1.0, 10, 10)
 V = FunctionSpace(mesh, "CG", 1)
  
 # Unknown
@@ -22,7 +22,7 @@ def f(t, ys):
   return ys[0]
 
 # Create the Adams solver
-solver = AdamsSolver([y], [f], init_t = 0.0, init_dt = 0.1, dt_max = 1.0, tol = 1e-7, verbose = True)
+solver = AdamsSolver([y], [f], init_t = 0.0, init_dt = 0.1, dt_max = 1.0, tol = 1e-5, verbose = True)
 
 # List of points in the solution
 ts = [0.0]
@@ -33,7 +33,7 @@ ts1 = np.linspace(0.0, T, 100)
 ys1 = y0*e**ts1
 
 while solver.t < T :
-  solver.step_adapt()
+  solver.step(1.0)
   ts.append(solver.t)
   ys.append(y.vector()[0])
 
