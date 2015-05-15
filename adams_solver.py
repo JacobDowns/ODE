@@ -1,6 +1,7 @@
 import numpy as np
 from RKSolver import *
 from lagrange_int import * 
+from dolfin import MPI, mpi_comm_world
 
 class AdamsSolver():
     
@@ -34,6 +35,8 @@ class AdamsSolver():
     # polynomials. This is used to determine the coefficients for the AB 
     # and AM methods given the last few time steps
     self.l_int = LagrangeInt()
+    # Process rank
+    self.MPI_rank = MPI.rank(mpi_comm_world())
     
   # Take 5 steps with an adaptive RK solver to bootstrap the PC method
   def bootstrap(self) :
@@ -42,7 +45,7 @@ class AdamsSolver():
     dt = self.dt / 5.0
     rk_solver = RKSolve(self.Ys, self.fs, t = self.t, dt = dt, dt_max = self.dt, tol = self.tol, output = False)
           
-    if self.verbose :
+    if self.verbose and self.MPI_rank == 0:
       print "Spinning up with RK."
 
     for i in range(5) :      
@@ -57,7 +60,7 @@ class AdamsSolver():
       # Store the slope vectors
       self.push_f_ns(fs)
       
-      if self.verbose:
+      if self.verbose and self.MPI_rank == 0:
         print "RK Step " + str(i + 1) + "/5 Complete."
         print "Current Time: " + str(self.t)
         
@@ -169,7 +172,7 @@ class AdamsSolver():
       errors = self.error(ys1, ys2)
       error = max(errors)
       
-      if self.verbose :
+      if self.verbose and self.MPI_rank == 0:
         print "Start Time: " + str(self.t)
         print "Attempted dt: " + str(self.dt)
         print "Error: " + str(error)
@@ -183,7 +186,7 @@ class AdamsSolver():
    
       # If the error is greater than the tolerance, then reject this step
       # and try again
-      if False and error > self.tol :
+      if error > self.tol :
         if self.verbose :
           print "Time step rejected."
           print

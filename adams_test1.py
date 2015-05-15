@@ -8,7 +8,7 @@ import numpy as np
 from adams_solver import *
 import pylab as plt
         
-mesh = RectangleMesh(0.0, 0.0, 1.0, 1.0, 3, 3)
+mesh = RectangleMesh(0.0, 0.0, 1.0, 1.0, 10, 10)
 V = FunctionSpace(mesh, "CG", 1)
 
 # Unknowns
@@ -36,7 +36,7 @@ def fy2(t, ys):
   y2 = ys[1]
   return (-C * y2 + D * y1 * y2)
 
-solver = AdamsSolver([y1, y2], [fy1, fy2], init_t = 0.0, init_dt = 0.01, dt_max = 1.0, tol = 1e-6, verbose = True)
+solver = AdamsSolver([y1, y2], [fy1, fy2], init_t = 0.0, init_dt = 0.01, dt_max = 1.0, tol = 1e-4, verbose = True)
 # Final time step
 T = 40.0
 # Lists for plotting solutions
